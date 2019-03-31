@@ -29,6 +29,7 @@ Search::Search() {
     cout<<"[*]:the following are DFS process"<<endl;
     DFS(root);
     BFS(root);
+    Astar(root);
 }
 
 vector<int*> Search::GetNeighboor(int i, int j) {
@@ -139,6 +140,16 @@ void Search::BFS(node &n) {
 }
 
 void Search::DFS(node &n) {
+    if (n->parent) {
+        n->g = n->parent->g + 1;
+        n->h = n->computeH();
+        n->f = n->g + n->h;
+    } else {
+        n->g = 0;
+        n->h = n->computeH();
+        n->f = n->g + n->h;
+    }
+    
     if (JudgeOver(n->table)) {
         cout<<"SUCCESS"<<endl;
         return;
@@ -168,6 +179,7 @@ void Search::DFS(node &n) {
             // cout<<"params:"<<neighbor[i][0]<<","<<neighbor[i][1]<<endl;
             node temp = swap(n, neighbor[i][0], neighbor[i][1]);
             n->vec.push_back(temp);
+            temp->parent = n;
             DFS(temp);
             // cout<<path->size()<<endl;
             int *del = *(path->end()-1);
@@ -177,19 +189,25 @@ void Search::DFS(node &n) {
     }
 }
 
-int Search::computeH(int **table) {
+int TreeNode::computeH() {
     return abs(table[0][0] - 1) + abs(table[0][1] - 2) + abs(table[0][2] - 3) + abs(table[1][0] - 8) + abs(table[1][1] - 0) + abs(table[1][2] - 4) + abs(table[2][0] - 7) + abs(table[2][1] - 6) + abs(table[2][2] - 5);
 }
 
 node Search::MinFxNode() {
     int Min = 100000;
+    int fx = 0;
     for (node n:open) {
-        int fx = computeH(n->table) + 1;
+        if (not n->parent) {
+            fx = n->computeH();
+        } else {
+            fx = n->computeH() + n->parent->g + 1;
+        }
+        n->f = fx;
         Min = min(fx, Min);
     }
-
-    for (node n:open) {
-        if (Min == computeH(n->table) + 1) {
+    for (int i=0;i<open.size();i++) {
+        node n = open[i];
+        if (Min == n->computeH() + n->g) {
             return n;
         }
     }
@@ -197,39 +215,73 @@ node Search::MinFxNode() {
 
 bool isInVec(node i, vector<node> vec) {
     for (node _t:vec) {
-        if (_t == _i) {
+        if (_t == i) {
             return true;
         }
     }
     return false;
 }
 
-// void Search::Astar(node &n) {
-//     open.push_back(n);
-//     while(not open.empty()){
-//         node minNode = MinFxNode();
-//         if (JudgeOver(minNode->table)) {
-//             cout<<"SUCCESS!"<<endl;
-//             return;
-//         } else {
-//             close.push_back(n);
-//             open.pop(n);
-//             for (node _n:n->vec) {
-//                 int fx = computeH(_n->table) + 1;
-//                 if (fx < computeH(minNode->table)+1) {
-//                     if (not isInVec(_n, open)) {
-//                         open.push_back(_n);
-//                         minNode = _n;
-//                     }
-//                 } else
-//                 {
-                    
-//                 }
-//             }
-//         }      
+void Search::RemoveNode(node n, vector<node> &vec) {
+    for (int i=0;i<vec.size();i++) {
+        if (n == vec[i]) {
+            vec.erase(vec.begin()+i);
+        }
+    }
+}
 
-//     }
-// }
+void Search::Astar(node &n) {
+    cout<<"--------Astar-------"<<endl;
+    open.push_back(n);
+    while(not open.empty()){
+        node minNode = MinFxNode();
+        // for (int x=0;x<3;x++) {
+        //     for (int y=0;y<3;y++) {
+        //         cout<<minNode->table[x][y];
+        //     }
+        //     cout<<endl;
+        // }
+        // cout<<"-------------------"<<endl;
+        RemoveNode(minNode, open);
+        close.push_back(minNode);
+
+        if (JudgeOver(minNode->table)) {
+            cout<<"SUCCESS!"<<endl;
+            cout<<"PATH:"<<endl;
+            cout<<"---------------"<<endl;
+
+            while(minNode->parent){
+                for (int x=0;x<3;x++) {
+                   for (int y=0;y<3;y++) {
+                        cout<<minNode->table[x][y];
+                    }
+                    cout<<endl;
+                }
+                cout<<"---------------"<<endl;
+                minNode = minNode->parent;    
+            }
+            
+            return;
+        } else {
+            for (node _n:minNode->vec) {
+                _n->f = _n->parent->g+1+_n->computeH();
+                if (not (isInVec(_n, close) or isInVec(_n, open))) {
+                    open.push_back(_n);
+                } else {
+                    if (_n->f < minNode->f) {
+                        minNode = _n;
+                        if (isInVec(minNode, close)) {
+                            RemoveNode(minNode, close);
+                            open.push_back(minNode);
+                        }
+                    }
+                }
+                
+            }
+        }      
+
+    }
+}
 
 int Search::JudgeOver(int **table) {
     for (int i=0;i<3;i++) {
@@ -318,7 +370,7 @@ int Search::JudgeOver(int **table) {
     return 1;
 }
 
-TreeNode::TreeNode(int **table, int i, int j):table(table), i(i), j(j) {}
+TreeNode::TreeNode(int **table, int i, int j):table(table), i(i), j(j),parent(NULL) {}
 
 TreeNode::TreeNode() {
     int table[3][3] = {{2,0,3},{1,8,4},{7,6,5}};
@@ -333,6 +385,10 @@ TreeNode::TreeNode() {
     }
     this->i = 0;
     this->j = 1;
+    this->g = 0;
+    this->h = computeH();
+    this->f = g + h;
+    parent=NULL;
 }
 
 

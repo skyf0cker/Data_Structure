@@ -4,16 +4,21 @@
 #include <iostream>
 #include <vector>
 #include <queue>
-#include <alogrithm>
+#include <algorithm>
 
 typedef struct TreeNode
 {
     int **table;
     int i;
     int j;
+    int g;
+    int h;
+    int f;
+    struct TreeNode* parent;
     std::vector<struct TreeNode*> vec; 
     TreeNode(int **, int, int);
     TreeNode();
+    int computeH();
 }Node, *node;
 
 class Search
@@ -24,8 +29,8 @@ private:
     std::vector<node> open;
     std::vector<node> close;
     std::vector<int*> GetNeighboor(int, int);
-    int computeH(int **);
     node MinFxNode();
+    void RemoveNode(node, std::vector<node>&);
     bool isIn(std::vector<int*> ,int*);
 public:
     Search();
